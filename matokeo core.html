@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matokeo Core V3 - Galaxymushi</title>
+<meta name="theme-color" content="#06060c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="https://via.placeholder.com/192/c9971f/000000?text=MC">
+
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Matokeo%20Core%22,%22short_name%22:%22Matokeo%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#06060c%22,%22theme_color%22:%22#c9971f%22,%22icons%22:[{%22src%22:%22https://via.placeholder.com/192/c9971f/000000?text=MC%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22},{%22src%22:%22https://via.placeholder.com/512/c9971f/000000?text=MatokeoCore%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root {
+  --bg:#06060c; --s1:#0f0f1a; --s2:#181826; --border:#282838; 
+  --gold:#c9971f; --gold2:#e8b835; --text:#ddd8c8; --muted:#6a6480;
+  --green:#22c55e; --red:#ef4444; --sw:260px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x: hidden; }
+
+/* LOGIN */
+#login-screen { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:10000; }
+.l-card { background:var(--s1); border:1px solid var(--border); border-radius:20px; padding:40px; width:90%; max-width:420px; text-align:center; }
+
+/* LAYOUT */
+#sidebar { width:var(--sw); background:var(--s1); border-right:1px solid var(--border); position:fixed; height:100vh; z-index:1000; transition: 0.3s; }
+#content { margin-left:var(--sw); padding:40px; width:calc(100% - var(--sw)); }
+
+.nav-item { padding:15px 25px; cursor:pointer; display:flex; align-items:center; gap:15px; color:var(--muted); transition:0.3s; border-left:4px solid transparent; }
+.nav-item.active { background:var(--s2); color:var(--gold2); border-left-color:var(--gold); }
+
+/* CHARTS */
+.view { display:none; }
+.view.active { display:block; }
+.grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:30px; }
+.chart-box { background:var(--s1); border:1px solid var(--border); padding:20px; border-radius:15px; height: 350px; position: relative; }
+
+/* FORMS */
+.form-box { background:var(--s1); padding:25px; border-radius:15px; border:1px solid var(--border); margin-bottom:20px; }
+input { width:100%; padding:12px; background:var(--s2); border:1px solid var(--border); color:#fff; border-radius:8px; font-size:16px; outline:none; margin-top:5px; }
+.grid-inputs { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; margin-top:15px; }
+
+.btn { background:linear-gradient(135deg, var(--gold), var(--gold2)); color:#000; padding:12px 20px; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-family:'Cinzel', serif; }
+
+.table-w { background:var(--s1); border:1px solid var(--border); border-radius:15px; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:600px; }
+th { background:var(--s2); padding:12px; text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase; border-bottom: 1px solid var(--border); }
+td { padding:12px; border-bottom:1px solid var(--border); font-size:14px; }
+
+@media (max-width:900px) { .grid-2 { grid-template-columns: 1fr; } #sidebar { width:70px; } .nav-text { display:none; } #content { margin-left:70px; width:calc(100% - 70px); padding: 20px; } }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="l-card">
+        <h1 style="color:var(--gold2); font-family:'Cinzel',serif; margin-bottom:25px">MATOKEO CORE</h1>
+        <div style="text-align:left; margin-bottom:15px"><label>Admin User</label><input type="text" id="u-in" value="admin"></div>
+        <div style="text-align:left; margin-bottom:20px"><label>Password</label><input type="password" id="p-in" value="1234"></div>
+        <button class="btn" style="width:100%" onclick="login()">INGIA KWENYE MFUMO</button>
+    </div>
+</div>
+
+<div id="app" style="display:none">
+    <aside id="sidebar">
+        <div style="padding:20px; border-bottom:1px solid var(--border); color:var(--gold2); font-family:'Cinzel',serif; font-size:12px">PANEL YA ADMIN</div>
+        <nav>
+            <div class="nav-item active" onclick="go('dash', this)">📊 <span class="nav-text">Grafu & Dashibodi</span></div>
+            <div class="nav-item" onclick="go('add', this)">➕ <span class="nav-text">Weka Alama</span></div>
+            <div class="nav-item" onclick="go('list', this)">👥 <span class="nav-text">Matokeo & PDF</span></div>
+            <div class="nav-item" onclick="go('set', this)">⚙ <span class="nav-text">Mipangilio</span></div>
+        </nav>
+    </aside>
+
+    <main id="content">
+        <div id="v-dash" class="view active">
+            <h1 id="sch-title" style="margin-bottom:20px; font-family:'Cinzel',serif; color:var(--gold2)"></h1>
+            <div class="grid-2">
+                <div class="chart-box"><canvas id="barChart"></canvas></div>
+                <div class="chart-box"><canvas id="pieChart"></canvas></div>
+            </div>
+            <div id="dash-stats" class="grid-inputs"></div>
+        </div>
+
+        <div id="v-add" class="view">
+            <h1 style="margin-bottom:20px; font-family:'Cinzel',serif">Ingiza Matokeo</h1>
+            <div class="form-box">
+                <label>Jina la Mwanafunzi</label><input type="text" id="stu-name" placeholder="Andika jina hapa...">
+                <div id="marks-area" class="grid-inputs"></div>
+                <button class="btn" style="margin-top:20px" onclick="save()">HIFADHI MATOKEO</button>
+            </div>
+        </div>
+
+        <div id="v-list" class="view">
+            <h1 style="margin-bottom:20px; font-family:'Cinzel',serif">Orodha ya Wanafunzi</h1>
+            <div class="table-w"><table><thead id="h-row"></thead><tbody id="b-row"></tbody></table></div>
+            <div style="margin-top:25px; display:flex; gap:15px; flex-wrap: wrap;">
+                <button class="btn" onclick="pdf('res')">📄 PDF MATOKEO</button>
+                <button class="btn" style="background:var(--s2); color:#fff" onclick="pdf('ana')">📈 PDF UCHAMBUZI (BORA/DHAIFU)</button>
+            </div>
+        </div>
+
+        <div id="v-set" class="view">
+            <h1 style="margin-bottom:20px; font-family:'Cinzel',serif">Mipangilio</h1>
+            <div class="form-box">
+                <h3>Usimamizi wa Masomo</h3>
+                <div style="display:flex; gap:10px; margin:15px 0"><input type="text" id="new-sub" placeholder="Somo jipya..."><button class="btn" onclick="addSub()">ONGEZA</button></div>
+                <div id="sub-list" style="display:flex; flex-wrap:wrap; gap:10px"></div>
+            </div>
+            <div class="form-box">
+                <h3>Taarifa za Shule & Admin</h3>
+                <div class="grid-inputs">
+                    <div><label>Jina la Shule</label><input type="text" id="sch-name"></div>
+                    <div><label>Admin Username</label><input type="text" id="adm-u"></div>
+                    <div><label>Password Mpya</label><input type="password" id="adm-p" placeholder="Acha wazi"></div>
+                </div>
+                <button class="btn" style="margin-top:20px" onclick="saveSet()">HIFADHI MABADILIKO</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let CFG = JSON.parse(localStorage.getItem('mx_v3_cfg')) || {u:'admin', p:'1234', school:'Galaxymushi Academy', subs:['Kiswahili','Hisabati','English']};
+let DATA = JSON.parse(localStorage.getItem('mx_v3_data')) || [];
+let charts = {};
+
+function sync(){ localStorage.setItem('mx_v3_cfg', JSON.stringify(CFG)); localStorage.setItem('mx_v3_data', JSON.stringify(DATA)); }
+
+function login(){
+    if(document.getElementById('u-in').value === CFG.u && document.getElementById('p-in').value === CFG.p){
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('app').style.display='flex';
+        init();
+    } else { alert("Login imekataa! Angalia Username au Password."); }
+}
+
+function go(id, el){
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('v-'+id).classList.add('active');
+    if(el) el.classList.add('active');
+    if(id==='dash') renderCharts();
+    if(id==='add') renderAdd();
+    if(id==='list') renderList();
+    if(id==='set') renderSet();
+}
+
+function init(){
+    document.getElementById('sch-title').innerText = CFG.school;
+    renderCharts();
+}
+
+// GRADE SYSTEM: 0-10=E, 11-20=D, 21-30=C, 31-40=B, 41-50=A
+function getG(n){
+    if(n > 40) return 'A';
+    if(n > 30) return 'B';
+    if(n > 20) return 'C';
+    if(n > 10) return 'D';
+    return 'E';
+}
+
+function renderCharts(){
+    if(charts.bar) charts.bar.destroy();
+    if(charts.pie) charts.pie.destroy();
+
+    const subLabels = CFG.subs;
+    const subAvgData = subLabels.map(s => {
+        let sum = 0;
+        DATA.forEach(st => sum += (st.marks[s] || 0));
+        return (sum / (DATA.length || 1)).toFixed(1);
+    });
+
+    const gradeCounts = {A:0, B:0, C:0, D:0, E:0};
+    DATA.forEach(st => {
+        let t = 0;
+        CFG.subs.forEach(s => t += (st.marks[s] || 0));
+        gradeCounts[getG(t/CFG.subs.length)]++;
+    });
+
+    const ctxB = document.getElementById('barChart').getContext('2d');
+    charts.bar = new Chart(ctxB, {
+        type: 'bar',
+        data: { labels: subLabels, datasets: [{ label: 'Wastani wa Somo', data: subAvgData, backgroundColor: '#c9971f' }] },
+        options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: '#ddd8c8' } } } }
+    });
+
+    const ctxP = document.getElementById('pieChart').getContext('2d');
+    charts.pie = new Chart(ctxP, {
+        type: 'doughnut',
+        data: { labels: ['A','B','C','D','E'], datasets: [{ data: Object.values(gradeCounts), backgroundColor: ['#22c55e','#4b8cf7','#f59e0b','#f97316','#ef4444'] }] },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#ddd8c8' } } } }
+    });
+
+    document.getElementById('dash-stats').innerHTML = `
+        <div class="form-box"><h2>${DATA.length}</h2><p>Wanafunzi</p></div>
+        <div class="form-box"><h2>${CFG.subs.length}</h2><p>Masomo</p></div>
+    `;
+}
+
+function renderAdd(){
+    document.getElementById('marks-area').innerHTML = CFG.subs.map(s => `<div><label>${s} (0-50)</label><input type="number" class="m-val" data-s="${s}" min="0" max="50"></div>`).join('');
+}
+
+function save(){
+    const n = document.getElementById('stu-name').value;
+    if(!n) return alert("Tafadhali weka jina la mwanafunzi.");
+    let m = {};
+    document.querySelectorAll('.m-val').forEach(i => m[i.dataset.s] = Number(i.value)||0);
+    DATA.push({id:Date.now(), name:n, marks:m});
+    sync(); document.getElementById('stu-name').value=''; alert("Matokeo yamehifadhiwa!");
+    go('list');
+}
+
+function renderList(){
+    document.getElementById('h-row').innerHTML = `<tr><th>Jina</th>${CFG.subs.map(s=>`<th>${s}</th>`).join('')}<th>Avg</th><th>#</th></tr>`;
+    document.getElementById('b-row').innerHTML = DATA.map(s => {
+        let t = 0; let r = `<td>${s.name}</td>`;
+        CFG.subs.forEach(sub => { let v=s.marks[sub]||0; t+=v; r+=`<td>${v} (${getG(v)})</td>`; });
+        r += `<td>${(t/CFG.subs.length).toFixed(1)}</td><td><button onclick="del(${s.id})" style="color:red;border:none;background:none;cursor:pointer">Futa</button></td>`;
+        return `<tr>${r}</tr>`;
+    }).join('');
+}
+
+function del(id){ if(confirm("Futa matokeo haya?")){ DATA=DATA.filter(x=>x.id!==id); sync(); renderList(); } }
+
+function renderSet(){
+    document.getElementById('sch-name').value = CFG.school;
+    document.getElementById('adm-u').value = CFG.u;
+    document.getElementById('sub-list').innerHTML = CFG.subs.map(s => `<div style="background:var(--s2);padding:10px;border-radius:8px;border:1px solid var(--border)">${s} <span onclick="delSub('${s}')" style="color:red;cursor:pointer;margin-left:10px;font-weight:bold">×</span></div>`).join('');
+}
+
+function addSub(){ const v = document.getElementById('new-sub').value; if(v && !CFG.subs.includes(v)){ CFG.subs.push(v); sync(); renderSet(); } }
+function delSub(s){ if(confirm("Futa somo hili?")){ CFG.subs = CFG.subs.filter(x=>x!==s); sync(); renderSet(); } }
+
+function saveSet(){
+    CFG.school = document.getElementById('sch-name').value;
+    CFG.u = document.getElementById('adm-u').value;
+    const p = document.getElementById('adm-p').value;
+    if(p) CFG.p = p;
+    sync(); alert("Mipangilio imehifadhiwa!"); location.reload();
+}
+
+function pdf(type){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l');
+    doc.setFontSize(22); doc.setTextColor(201, 151, 31);
+    doc.text(CFG.school.toUpperCase(), 140, 20, {align:'center'});
+
+    if(type==='res'){
+        doc.setFontSize(14); doc.setTextColor(100);
+        doc.text("RIPOTI YA MATOKEO YA WANAFUNZI", 140, 30, {align:'center'});
+        const rows = DATA.map((s,i) => {
+            let t=0; const r=[i+1, s.name];
+            CFG.subs.forEach(sub=>{ t+=(s.marks[sub]||0); r.push(`${s.marks[sub]||0} (${getG(s.marks[sub]||0)})`); });
+            r.push((t/CFG.subs.length).toFixed(1)); return r;
+        });
+        doc.autoTable({ head:[['#','Jina',...CFG.subs,'Wastani']], body:rows, startY:40, theme:'grid', headStyles:{fillColor:[25, 25, 40]} });
+    } else {
+        doc.setFontSize(14); doc.setTextColor(100);
+        doc.text("UCHAMBUZI WA MASOMO (BORA NA DHAIFU)", 140, 30, {align:'center'});
+        const rows = CFG.subs.map(s => {
+            const sc = DATA.map(st => ({n:st.name, v:st.marks[s]||0}));
+            const best = sc.length ? sc.reduce((a,b)=>a.v>b.v?a:b) : {n:'-',v:0};
+            const worst = sc.length ? sc.reduce((a,b)=>a.v<b.v?a:b) : {n:'-',v:0};
+            let sum = sc.reduce((a,b)=>a+b.v, 0);
+            return [s, `${best.n} (${best.v})`, `${worst.n} (${worst.v})`, (sum/(sc.length||1)).toFixed(1)];
+        });
+        doc.autoTable({ head:[['Somo','Mwanafunzi Bora','Mwanafunzi Dhaifu','Wastani wa Somo']], body:rows, startY:40, theme:'striped' });
+    }
+    doc.save(`${CFG.school}_Ripoti.pdf`);
+}
+</script>
+// Hii inasajili Service Worker ili Chrome ikubali ku-install App
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
+            self.addEventListener('fetch', (event) => {
+                // Hii inafanya App ifanye kazi hata kama hakuna internet
+                event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+            });
+        `)).then(reg => console.log('App Ready!')).catch(err => console.log('Error', err));
+    });
+}
+</script>
+</html>
+</body>
